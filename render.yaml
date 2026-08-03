@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sss-downloader
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: MAX_DURATION_SECONDS
+        value: 5400
