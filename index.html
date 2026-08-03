@@ -170,6 +170,18 @@ tailwind.config = {
           Link valid hai — <span id="noticePlat" class="font-semibold"></span> detect ho gaya. Lekin video nikalne ka kaam browser akela nahi kar sakta; ek API server chahiye jo yt-dlp chalaye.
         </p>
 
+        <!-- instant fallback: hand the link to a service that is already running -->
+        <div class="mt-5 rounded-xl border border-emerald-300/70 bg-emerald-50/80 p-4 dark:border-emerald-400/25 dark:bg-emerald-500/5">
+          <p class="text-[15px] font-semibold text-emerald-900 dark:text-emerald-300">Abhi download karna hai?</p>
+          <p class="mt-1 text-[14px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/80">
+            Neeche kisi bhi service par tap karein — aap ka link khud copy ho jayega aur wo site khul jayegi. Wahan sirf paste karna hai.
+          </p>
+          <div id="quickServices" class="mt-3 flex flex-wrap gap-2"></div>
+          <p class="mt-2.5 text-[12px] text-emerald-900/60 dark:text-emerald-200/50">
+            Ye teesri parties ki sites hain — inke apne ads aur qawaid hain, hamara control nahi. Apna server chalne par ye hissa gayab ho jayega.
+          </p>
+        </div>
+
         <!-- connect an already-running server -->
         <label class="mt-5 block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Server ka address</label>
         <div class="mt-2 flex flex-col gap-2 sm:flex-row">
@@ -767,6 +779,7 @@ async function submitUrl(){
   // No backend reachable — say so plainly instead of inventing a result.
   if (!API) {
     noticePlat.textContent = P[k].name;
+    renderQuickServices(k, url);
     setupNotice.classList.remove('hidden');
     setupNotice.scrollIntoView({ behavior:'smooth', block:'center' });
     return;
@@ -795,6 +808,40 @@ input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefau
 
 // Never fail silently again.
 window.addEventListener('error', e => showErr('Script error: ' + (e.message || 'unknown')));
+
+/* ---------- instant fallback services ----------
+   We can't extract video in the browser, so hand the link to a service
+   that already runs its own backend. Link is copied first so the user
+   only has to paste. */
+const SERVICES = {
+  _any:      [['cobalt.tools','https://cobalt.tools/']],
+  tiktok:    [['snaptik.app','https://snaptik.app/'], ['ssstik.io','https://ssstik.io/']],
+  instagram: [['snapinsta','https://snapinsta.to/'], ['igram.world','https://igram.world/']],
+  facebook:  [['snapsave','https://snapsave.app/'], ['fdown.net','https://fdown.net/']],
+  twitter:   [['ssstwitter','https://ssstwitter.com/']],
+  youtube:   [['savefrom','https://savefrom.net/']],
+  pinterest: [['savefrom','https://savefrom.net/']],
+  snapchat:  [['savefrom','https://savefrom.net/']],
+  linkedin:  [['savefrom','https://savefrom.net/']],
+};
+
+function renderQuickServices(platform, url){
+  const list = [...(SERVICES[platform] || []), ...SERVICES._any];
+  quickServices.innerHTML = list.map(([name, href], i) => `
+    <button type="button" data-href="${href}" class="qsvc inline-flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-sm font-semibold transition active:scale-[.97]
+      ${i === 0
+        ? 'border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700'
+        : 'border-emerald-300 bg-white text-emerald-800 hover:bg-emerald-100 dark:border-emerald-400/30 dark:bg-transparent dark:text-emerald-300'}">
+      ${name}
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M9 7h8v8"/></svg>
+    </button>`).join('');
+
+  quickServices.querySelectorAll('.qsvc').forEach(b => b.onclick = async () => {
+    try { await navigator.clipboard.writeText(url); toast('Link copy ho gaya — ab wahan paste karein'); }
+    catch { toast('Link copy nahi hua — khud copy kar lein'); }
+    window.open(b.dataset.href, '_blank', 'noopener');
+  });
+}
 
 /* ---------- backend detection ---------- */
 function onBackendFound(base){
